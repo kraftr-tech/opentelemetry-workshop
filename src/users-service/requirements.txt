@@ -1,0 +1,6 @@
+flask==3.1.1
+flask-cors==5.0.1
+gunicorn==23.0.0
+openfeature-sdk==0.7.*
+openfeature-provider-flagd==0.2.*
+typing_extensions>=4.0

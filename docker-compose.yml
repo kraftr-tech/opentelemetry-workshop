@@ -1,0 +1,213 @@
+services:
+  frontend-proxy:
+    build:
+      context: .
+      dockerfile: src/frontend-proxy/Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - ENVOY_ADDR=0.0.0.0
+      - ENVOY_PORT=8080
+      - ENVOY_ADMIN_PORT=9901
+      - OTEL_SERVICE_NAME=frontend-proxy
+      - FRONTEND_HOST=ui
+      - FRONTEND_PORT=3000
+      - OTEL_COLLECTOR_HOST=otel-collector
+      - OTEL_COLLECTOR_PORT_GRPC=4317
+      - OTEL_COLLECTOR_PORT_HTTP=4318
+      - PRODUCTS_SERVICE_HOST=products-service
+      - PRODUCTS_SERVICE_PORT=8002
+      - USERS_SERVICE_HOST=users-service
+      - USERS_SERVICE_PORT=8001
+      - BILLING_SERVICE_HOST=billing-service
+      - BILLING_SERVICE_PORT=8004
+      - PAYMENT_SERVICE_HOST=payment-service
+      - PAYMENT_SERVICE_PORT=8003
+      - LOAD_GENERATOR_HOST=load-generator
+      - LOAD_GENERATOR_PORT=8089
+      - LOAD_GENERATOR_WEB_PORT=8089
+      - GRAFANA_HOST=grafana
+      - GRAFANA_PORT=3000
+      - FLAGD_UI_HOST=flagd-ui
+      - FLAGD_UI_PORT=4000
+    depends_on:
+      - ui
+      - users-service
+      - products-service
+      - billing-service
+      - payment-service
+      - otel-collector
+      - load-generator
+      - grafana
+      - flagd
+      - flagd-ui
+
+  ui:
+    build:
+      context: .
+      dockerfile: src/ui/Dockerfile
+    depends_on:
+      - users-service
+      - products-service
+      - billing-service
+
+  users-service:
+    build:
+      context: .
+      dockerfile: src/users-service/Dockerfile
+    volumes:
+      - users-data:/data
+    environment:
+      - FLAGD_HOST=flagd
+      - FLAGD_PORT=8013
+    depends_on:
+      - flagd
+
+  products-service:
+    build:
+      context: .
+      dockerfile: src/products-service/Dockerfile
+    volumes:
+      - products-data:/data
+    environment:
+      - FLAGD_HOST=flagd
+      - FLAGD_PORT=8013
+    depends_on:
+      - flagd
+
+  billing-service:
+    build:
+      context: .
+      dockerfile: src/billing-service/Dockerfile
+    volumes:
+      - billing-data:/data
+    environment:
+      - FLAGD_HOST=flagd
+      - FLAGD_PORT=8013
+    depends_on:
+      - users-service
+      - products-service
+      - payment-service
+      - flagd
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: src/payment-service/Dockerfile
+    volumes:
+      - payments-data:/data
+    depends_on:
+      - bank-service
+      - flagd
+    environment:
+      - BANK_SERVICE_HOST=bank-service:50051
+      - FLAGD_HOST=flagd
+      - FLAGD_PORT=8013
+
+  bank-service:
+    build:
+      context: .
+      dockerfile: src/bank-service/Dockerfile
+    environment:
+      - FLAGD_HOST=flagd
+      - FLAGD_PORT=8013
+    depends_on:
+      - otel-collector
+      - flagd
+
+  load-generator:
+    build:
+      context: .
+      dockerfile: src/load-generator/Dockerfile
+    environment:
+      - LOCUST_HOST=http://ui:3000
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_SERVICE_NAME=load-generator
+    depends_on:
+      - ui
+      - otel-collector
+
+  flagd:
+    image: ghcr.io/open-feature/flagd:latest
+    environment:
+      - FLAGD_OTEL_COLLECTOR_URI=otel-collector:4317
+      - FLAGD_METRICS_EXPORTER=otel
+      - OTEL_SERVICE_NAME=flagd
+    command:
+      - "start"
+      - "--uri"
+      - "file:./etc/flagd/demo.flagd.json"
+    volumes:
+      - ./src/flagd:/etc/flagd:ro
+    depends_on:
+      - otel-collector
+
+  flagd-ui:
+    image: ghcr.io/open-telemetry/demo:latest-flagd-ui
+    environment:
+      - FLAGD_UI_PORT=4000
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_SERVICE_NAME=flagd-ui
+      - SECRET_KEY_BASE=yYrECL4qbNwleYInGJYvVnSkwJuSQJ4ijPTx5tirGUXrbznFIBFVJdPl5t6O9ASw
+      - PHX_HOST=localhost
+    volumes:
+      - ./src/flagd:/app/data
+    depends_on:
+      - flagd
+      - otel-collector
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.150.1
+    volumes:
+      - ./src/otel-collector/otelcol-config.yaml:/etc/otelcol-contrib/config.yaml
+
+  tempo:
+    image: grafana/tempo:latest
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./src/tempo/tempo.yaml:/etc/tempo.yaml
+      - tempo-data:/var/tempo
+
+  loki:
+    image: grafana/loki:latest
+    command: ["-config.file=/etc/loki/config.yaml"]
+    volumes:
+      - ./src/loki/loki-config.yaml:/etc/loki/config.yaml
+      - loki-data:/loki
+
+  prometheus:
+    image: prom/prometheus:latest
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--web.enable-remote-write-receiver"
+      - "--enable-feature=exemplar-storage"
+      - "--enable-feature=out-of-order-exemplars"
+      - "--storage.tsdb.retention.time=1d"
+    volumes:
+      - ./src/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-http://localhost:8080/grafana}
+    volumes:
+      - ./src/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - tempo
+      - loki
+      - prometheus
+
+volumes:
+  products-data:
+  payments-data:
+  users-data:
+  billing-data:
+  tempo-data:
+  loki-data:
+  prometheus-data:
+  grafana-data:

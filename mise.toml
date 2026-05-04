@@ -1,0 +1,14 @@
+[tools]
+task = "3.49"
+go = "1.25"
+node = "24"
+protoc = "25.9"
+"go:google.golang.org/protobuf/cmd/protoc-gen-go" = "latest"
+"go:google.golang.org/grpc/cmd/protoc-gen-go-grpc" = "1.6"
+dotnet = "10.0"
+python = "3"
+
+[env]
+ENVOY_ADDR="0.0.0.0"
+ENVOY_PORT="8080"
+ENVOY_ADMIN_PORT="10000"

@@ -1,0 +1,63 @@
+version: "3.0"
+
+env:
+  BASE_HOST: "http://localhost:8080"
+
+vars:
+  VERSION: "1.0.0"
+  PLATFORM: linux/amd64
+  LOCAL_REGISTRY: workshop
+
+includes:
+  build:
+    taskfile: ./.taskfiles/build.yaml
+    dir: '{{.ROOT_DIR}}'
+    vars:
+      VERSION: '{{.VERSION}}'
+      PLATFORM: '{{.PLATFORM}}'
+      LOCAL_REGISTRY: '{{.LOCAL_REGISTRY}}'
+  proto:
+    taskfile: ./.taskfiles/proto.yaml
+    dir: '{{.ROOT_DIR}}'
+
+tasks:
+  default:
+    desc: Show the help
+    silent: true
+    cmds:
+      - task --list
+
+  up:
+    desc: Start the full compose stack with mise env (Grafana Cloud creds) injected
+    cmds:
+      - mise exec -- docker compose up -d --build {{.CLI_ARGS}}
+
+  down:
+    desc: Stop the compose stack and remove volumes
+    cmds:
+      - mise exec -- docker compose down -v {{.CLI_ARGS}}
+
+  logs:
+    desc: Tail collector logs (use CLI_ARGS to target another service)
+    cmds:
+      - mise exec -- docker compose logs -f {{.CLI_ARGS | default "otel-collector"}}
+
+  open:site:
+    desc: Open Site in the browser
+    cmds:
+      - mise exec -- open $BASE_HOST
+
+  open:grafana:
+    desc: Open Grafana in the browser
+    cmds:
+      - mise exec -- open $BASE_HOST/grafana
+
+  open:loadgen:
+    desc: Open Load Generator in the browser
+    cmds:
+      - mise exec -- open $BASE_HOST/loadgen
+
+  open:feature:
+    desc: Open Feature Toggle in the browser
+    cmds:
+      - mise exec -- open $BASE_HOST/feature

@@ -1,0 +1,106 @@
+{
+  "$schema": "https://flagd.dev/schema/v0/flags.json",
+  "flags": {
+    "bankDeclineRate": {
+      "defaultVariant": "off",
+      "description": "Taux de rejet renvoye par bank-service (status FAILED_PRECONDITION)",
+      "state": "ENABLED",
+      "variants": {
+        "10%": 0.1,
+        "50%": 0.5,
+        "90%": 0.9,
+        "off": 0
+      }
+    },
+    "bankHighLatency": {
+      "defaultVariant": "off",
+      "description": "Latence supplementaire dans le span gRPC ProcessTransaction (ms)",
+      "state": "ENABLED",
+      "variants": {
+        "2s": 2000,
+        "5s": 5000,
+        "off": 0
+      }
+    },
+    "billingCheckoutFailure": {
+      "defaultVariant": "off",
+      "description": "Pourcentage de checkouts qui levent une CheckoutException",
+      "state": "ENABLED",
+      "variants": {
+        "100%": 1.0,
+        "25%": 0.25,
+        "off": 0
+      }
+    },
+    "billingMemoryLeak": {
+      "defaultVariant": "off",
+      "description": "Allocations 1 MiB par checkout, retenues dans une liste statique (multiplicateur)",
+      "state": "ENABLED",
+      "variants": {
+        "1000x": 1000,
+        "100x": 100,
+        "1x": 1,
+        "off": 0
+      }
+    },
+    "paymentFailure": {
+      "defaultVariant": "off",
+      "description": "Pourcentage d'appels Charge qui retournent une 500",
+      "state": "ENABLED",
+      "variants": {
+        "10%": 0.1,
+        "100%": 1.0,
+        "50%": 0.5,
+        "off": 0
+      }
+    },
+    "paymentSlow": {
+      "defaultVariant": "off",
+      "description": "Sleep en millisecondes ajoute avant l'appel gRPC bank",
+      "state": "ENABLED",
+      "variants": {
+        "1s": 1000,
+        "3s": 3000,
+        "off": 0
+      }
+    },
+    "paymentUnreachable": {
+      "defaultVariant": "off",
+      "description": "Le service paiement refuse toutes les requetes",
+      "state": "ENABLED",
+      "variants": {
+        "off": false,
+        "on": true
+      }
+    },
+    "productCatalogFailure": {
+      "defaultVariant": "off",
+      "description": "Echec de GET /products/{id} pour le SKU LUX-482-WATCH",
+      "state": "ENABLED",
+      "variants": {
+        "off": false,
+        "on": true
+      }
+    },
+    "productCatalogSlow": {
+      "defaultVariant": "off",
+      "description": "Sleep en millisecondes ajoute dans GET /products avant la requete DB",
+      "state": "ENABLED",
+      "variants": {
+        "2s": 2000,
+        "500ms": 500,
+        "5s": 5000,
+        "off": 0
+      }
+    },
+    "usersServiceFailure": {
+      "defaultVariant": "off",
+      "description": "GET /users/{id} retourne 500",
+      "state": "ENABLED",
+      "variants": {
+        "off": false,
+        "on": true
+      }
+    }
+  }
+}
