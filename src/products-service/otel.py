@@ -1,9 +1,12 @@
 # SPDX-FileCopyrightText: 2026 Cédric Moulard / Kraftr
 # SPDX-License-Identifier: MIT
 
+import logging
 import os
 
-from opentelemetry import metrics, trace
+from opentelemetry import _logs, metrics, trace
+from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor, ConsoleLogExporter
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.metrics.export import ConsoleMetricExporter, PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import Resource
@@ -31,3 +34,14 @@ def setup_metrics() -> None:
     )
     provider = MeterProvider(resource=_resource(), metric_readers=[reader])
     metrics.set_meter_provider(provider)
+
+
+def setup_logging() -> None:
+    provider = LoggerProvider(resource=_resource())
+    provider.add_log_record_processor(BatchLogRecordProcessor(ConsoleLogExporter()))
+    _logs.set_logger_provider(provider)
+
+    handler = LoggingHandler(level=logging.INFO, logger_provider=provider)
+    root = logging.getLogger()
+    root.setLevel(logging.NOTSET)
+    root.addHandler(handler)

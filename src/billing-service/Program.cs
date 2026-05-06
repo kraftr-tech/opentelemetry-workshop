@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using BillingService;
+using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -26,7 +27,8 @@ builder.Services.AddSingleton(sp => new BillingService.BillingService(
     sp.GetRequiredService<BillingRepository>(),
     sp.GetRequiredService<IHttpClientFactory>(),
     productsUrl,
-    paymentUrl
+    paymentUrl,
+    sp.GetRequiredService<ILogger<BillingService.BillingService>>()
 ));
 
 builder.Services.AddOpenTelemetry()
@@ -42,6 +44,14 @@ builder.Services.AddOpenTelemetry()
         .AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation()
         .AddConsoleExporter());
+
+builder.Logging.AddOpenTelemetry(o =>
+{
+    o.IncludeFormattedMessage = true;
+    o.IncludeScopes = true;
+    o.ParseStateValues = true;
+    o.AddConsoleExporter();
+});
 
 var app = builder.Build();
 

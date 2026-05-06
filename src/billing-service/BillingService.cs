@@ -7,7 +7,8 @@ public class BillingService(
     BillingRepository repository,
     IHttpClientFactory httpClientFactory,
     string productsUrl,
-    string paymentUrl)
+    string paymentUrl,
+    ILogger<BillingService> logger)
 {
     private const double ShippingCost = 25.0;
     private const double TaxRate = 0.2;
@@ -112,6 +113,8 @@ public class BillingService(
 
     public async Task<(CheckoutResponse? Result, object? Error, int StatusCode)> Checkout(string userId, CartItem[] cartItems)
     {
+        logger.LogInformation("checkout_started {UserId} {ItemCount}", userId, cartItems.Length);
+
         var failPct = await FeatureFlags.Client.GetDoubleValueAsync("billingCheckoutFailure", 0.0);
         if (failPct > 0 && Random.Shared.NextDouble() < failPct)
         {
@@ -124,7 +127,10 @@ public class BillingService(
 
         var (validated, errors) = await ValidateProducts(cartItems);
         if (errors.Count > 0)
+        {
+            logger.LogWarning("checkout_validation_failed {UserId} {ErrorCount}", userId, errors.Count);
             return (null, new { Error = "checkout validation failed", Details = errors }, 409);
+        }
 
         var subtotal = validated.Sum(e => e.Product.Price * e.Quantity);
         var tax = Math.Round(subtotal * TaxRate, 2);
@@ -133,6 +139,7 @@ public class BillingService(
         var (payData, payError) = await ProcessPayment(userId, total);
         if (payError is not null)
         {
+            logger.LogWarning("checkout_payment_failed {UserId} {Total} {Error}", userId, total, payError);
             var statusCode = payError == "payment service unavailable" ? 502 : 402;
             var resolvedPayId = payData?.PaymentId ?? payData?.Id;
             return (null, new
@@ -150,6 +157,7 @@ public class BillingService(
         ));
         var orderId = repository.InsertOrder(userId, total, payData?.Id, orderItems);
 
+        logger.LogInformation("checkout_completed {UserId} {OrderId} {Total}", userId, orderId, total);
         return (new CheckoutResponse("ok", orderId, payData?.Id, total, validated.Count), null, 200);
     }
 
