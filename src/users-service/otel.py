@@ -5,13 +5,16 @@ import logging
 import os
 
 from opentelemetry import _logs, metrics, trace
+from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
+from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
-from opentelemetry.sdk._logs.export import BatchLogRecordProcessor, ConsoleLogExporter
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.metrics import MeterProvider
-from opentelemetry.sdk.metrics.export import ConsoleMetricExporter, PeriodicExportingMetricReader
+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProcessor
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 
 def _resource() -> Resource:
@@ -23,13 +26,13 @@ def _resource() -> Resource:
 
 def setup_tracing() -> None:
     provider = TracerProvider(resource=_resource())
-    provider.add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
+    provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter()))
     trace.set_tracer_provider(provider)
 
 
 def setup_metrics() -> None:
     reader = PeriodicExportingMetricReader(
-        ConsoleMetricExporter(),
+        OTLPMetricExporter(),
         export_interval_millis=10_000,
     )
     provider = MeterProvider(resource=_resource(), metric_readers=[reader])
@@ -38,7 +41,7 @@ def setup_metrics() -> None:
 
 def setup_logging() -> None:
     provider = LoggerProvider(resource=_resource())
-    provider.add_log_record_processor(BatchLogRecordProcessor(ConsoleLogExporter()))
+    provider.add_log_record_processor(BatchLogRecordProcessor(OTLPLogExporter()))
     _logs.set_logger_provider(provider)
 
     handler = LoggingHandler(level=logging.INFO, logger_provider=provider)

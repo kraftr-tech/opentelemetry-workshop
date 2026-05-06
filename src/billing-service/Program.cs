@@ -39,18 +39,18 @@ builder.Services.AddOpenTelemetry()
     .WithTracing(b => b
         .AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation()
-        .AddConsoleExporter())
+        .AddOtlpExporter())
     .WithMetrics(b => b
         .AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation()
-        .AddConsoleExporter());
+        .AddOtlpExporter());
 
 builder.Logging.AddOpenTelemetry(o =>
 {
     o.IncludeFormattedMessage = true;
     o.IncludeScopes = true;
     o.ParseStateValues = true;
-    o.AddConsoleExporter();
+    o.AddOtlpExporter();
 });
 
 var app = builder.Build();

@@ -61,8 +61,11 @@ services:
       - FLAGD_HOST=flagd
       - FLAGD_PORT=8013
       - OTEL_SERVICE_NAME=users-service
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
     depends_on:
       - flagd
+      - otel-collector
 
   products-service:
     build:
@@ -74,8 +77,11 @@ services:
       - FLAGD_HOST=flagd
       - FLAGD_PORT=8013
       - OTEL_SERVICE_NAME=products-service
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
     depends_on:
       - flagd
+      - otel-collector
 
   billing-service:
     build:
@@ -87,11 +93,14 @@ services:
       - FLAGD_HOST=flagd
       - FLAGD_PORT=8013
       - OTEL_SERVICE_NAME=billing-service
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
     depends_on:
       - users-service
       - products-service
       - payment-service
       - flagd
+      - otel-collector
 
   payment-service:
     build:
@@ -102,11 +111,14 @@ services:
     depends_on:
       - bank-service
       - flagd
+      - otel-collector
     environment:
       - BANK_SERVICE_HOST=bank-service:50051
       - FLAGD_HOST=flagd
       - FLAGD_PORT=8013
       - OTEL_SERVICE_NAME=payment-service
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
 
   bank-service:
     build:
@@ -115,6 +127,7 @@ services:
     environment:
       - FLAGD_HOST=flagd
       - FLAGD_PORT=8013
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
     depends_on:
       - otel-collector
       - flagd

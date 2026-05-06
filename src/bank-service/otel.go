@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/stdout/stdoutlog"
-	"go.opentelemetry.io/otel/exporters/stdout/stdoutmetric"
-	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
+	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	otellog "go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/propagation"
 	sdklog "go.opentelemetry.io/otel/sdk/log"
@@ -31,13 +31,14 @@ func initOtel(ctx context.Context) func() {
 		log.Fatalf("failed to create resource: %v", err)
 	}
 
-	traceExporter, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
+	// Traces — OTLP HTTP vers le collecteur (endpoint via OTEL_EXPORTER_OTLP_ENDPOINT)
+	traceExporter, err := otlptracehttp.New(ctx)
 	if err != nil {
-		log.Fatalf("failed to create stdout trace exporter: %v", err)
+		log.Fatalf("failed to create OTLP trace exporter: %v", err)
 	}
 
 	tp := sdktrace.NewTracerProvider(
-		sdktrace.WithSpanProcessor(sdktrace.NewSimpleSpanProcessor(traceExporter)),
+		sdktrace.WithBatcher(traceExporter),
 		sdktrace.WithResource(res),
 	)
 	otel.SetTracerProvider(tp)
@@ -46,7 +47,8 @@ func initOtel(ctx context.Context) func() {
 		propagation.Baggage{},
 	))
 
-	metricExporter, err := stdoutmetric.New()
+	// Metrics — OTLP HTTP, export périodique toutes les 10 s
+	metricExporter, err := otlpmetrichttp.New(ctx)
 	if err != nil {
 		log.Fatalf("failed to create OTLP metric exporter: %v", err)
 	}
@@ -58,10 +60,10 @@ func initOtel(ctx context.Context) func() {
 	)
 	otel.SetMeterProvider(mp)
 
-	// Logs — stdout avec batch processor (bridge pour slog via otelslog)
-	logExporter, err := stdoutlog.New()
+	// Logs — OTLP HTTP avec batch processor (bridge pour slog via otelslog)
+	logExporter, err := otlploghttp.New(ctx)
 	if err != nil {
-		log.Fatalf("failed to create stdout log exporter: %v", err)
+		log.Fatalf("failed to create OTLP log exporter: %v", err)
 	}
 	lp := sdklog.NewLoggerProvider(
 		sdklog.WithProcessor(sdklog.NewBatchProcessor(logExporter)),
