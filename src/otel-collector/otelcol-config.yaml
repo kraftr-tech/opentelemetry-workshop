@@ -8,6 +8,16 @@ receivers:
 exporters:
   debug:
     verbosity: detailed
+  otlp/tempo:
+    endpoint: http://tempo:4317
+    tls:
+      insecure: true
+  prometheusremotewrite/prometheus:
+    endpoint: http://prometheus:9090/api/v1/write
+    resource_to_telemetry_conversion:
+      enabled: true
+  otlp_http/loki:
+    endpoint: http://loki:3100/otlp
 
 processors:
   batch:
@@ -16,18 +26,23 @@ processors:
     check_interval: 5s
     limit_percentage: 80
     spike_limit_percentage: 25
+  resource/env:
+    attributes:
+      - key: deployment.environment
+        value: "workshop"
+        action: upsert
 
 service:
   pipelines:
     traces:
       receivers: ["otlp"]
-      processors: ["memory_limiter", "batch"]
-      exporters: ["debug"]
+      processors: ["memory_limiter", "resource/env", "batch"]
+      exporters: ["otlp/tempo"]
     metrics:
       receivers: ["otlp"]
-      processors: ["memory_limiter", "batch"]
-      exporters: ["debug"]
+      processors: ["memory_limiter", "resource/env", "batch"]
+      exporters: ["prometheusremotewrite/prometheus"]
     logs/otlp:
       receivers: ["otlp"]
-      processors: ["memory_limiter", "batch"]
-      exporters: ["debug"]
+      processors: ["memory_limiter", "resource/env", "batch"]
+      exporters: ["otlp_http/loki"]
