@@ -9,12 +9,13 @@ from opentelemetry.instrumentation.flask import FlaskInstrumentor
 from opentelemetry.instrumentation.sqlite3 import SQLite3Instrumentor
 
 from db import init_db, close_db
-from otel import setup_tracing
+from otel import setup_tracing, setup_metrics
 from feature_flags import init_flags
 from service import UsersServiceFailureError
 import service
 
 setup_tracing()
+setup_metrics()
 SQLite3Instrumentor().instrument()
 
 logger = logging.getLogger("users")

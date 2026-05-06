@@ -3,7 +3,9 @@
 
 import os
 
-from opentelemetry import trace
+from opentelemetry import metrics, trace
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import ConsoleMetricExporter, PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import ConsoleSpanExporter, SimpleSpanProcessor
@@ -20,3 +22,12 @@ def setup_tracing() -> None:
     provider = TracerProvider(resource=_resource())
     provider.add_span_processor(SimpleSpanProcessor(ConsoleSpanExporter()))
     trace.set_tracer_provider(provider)
+
+
+def setup_metrics() -> None:
+    reader = PeriodicExportingMetricReader(
+        ConsoleMetricExporter(),
+        export_interval_millis=10_000,
+    )
+    provider = MeterProvider(resource=_resource(), metric_readers=[reader])
+    metrics.set_meter_provider(provider)
