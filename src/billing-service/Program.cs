@@ -37,10 +37,13 @@ builder.Services.AddOpenTelemetry()
             serviceName: Environment.GetEnvironmentVariable("OTEL_SERVICE_NAME") ?? "billing-service",
             serviceVersion: Environment.GetEnvironmentVariable("OTEL_SERVICE_VERSION") ?? "1.0.0"))
     .WithTracing(b => b
+        .AddSource("billing-service") 
         .AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation()
         .AddOtlpExporter())
     .WithMetrics(b => b
+        .SetExemplarFilter(ExemplarFilterType.TraceBased)
+        .AddMeter("billing-service")
         .AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation()
         .AddOtlpExporter());

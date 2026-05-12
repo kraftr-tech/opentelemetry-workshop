@@ -213,6 +213,9 @@ services:
       - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-http://localhost:8080/grafana}
     volumes:
       - ./src/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./src/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./src/grafana/provisioning/alerting:/etc/grafana/provisioning/alerting
+      - ./src/grafana/dashboards:/var/lib/grafana/dashboards
       - grafana-data:/var/lib/grafana
     depends_on:
       - tempo

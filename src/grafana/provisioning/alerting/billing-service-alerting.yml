@@ -1,0 +1,84 @@
+# Copyright The OpenTelemetry Authors
+# SPDX-License-Identifier: Apache-2.0
+
+---
+apiVersion: 1
+groups:
+  - orgId: 1
+    name: OpenTelemetryDemo.1m
+    folder: OpenTelemetryDemo
+    interval: 1m
+    rules:
+      - uid: des78nlna99tsf
+        title: CheckoutHighLatency
+        condition: p95_threshold
+        data:
+          - refId: p95_duration
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              editorMode: code
+              expr: |-
+                histogram_quantile(
+                  0.95,
+                  sum by (deployment_environment_name, service_namespace, service_name, service_instance_id, http_route, http_request_method, le) (
+                    rate(
+                      checkout_duration_milliseconds_bucket{
+                        service_name="billing-service",
+                      }[5m]
+                    )
+                  )
+                )
+              instant: true
+              interval: ""
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: p95_duration
+          - refId: p95_threshold
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 1000
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: p95_duration
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: p95_threshold
+              type: threshold
+        dashboardUid: atelier
+        panelId: 4
+        noDataState: NoData
+        execErrState: Error
+        for: 1m
+        keepFiringFor: 2m
+        annotations:
+          description: |-
+            The 95th percentile response time for checkout has been
+                above 1s for 2 minutes on {{ $labels.service_instance_id }}. Current
+                value: {{ .Value }} ms.
+          summary: |-
+            High P95 for checkout on {{ $labels.service_instance_id }}
+        labels:
+          service_name: billing-service
+          severity: warning
+        isPaused: false
+        notification_settings:
+          receiver: grafana-default-email
